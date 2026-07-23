@@ -17,7 +17,7 @@ class ModelTrainer:
             return DecisionTreeClassifier(max_depth=params.get("max_depth", 5), random_state=42)
         elif model_name == "Random Forest":
             return RandomForestClassifier(
-                n_estimators=params.get("n_estimators", 100),
+                n_estimators=params.get("n_estimators", 50),
                 max_depth=params.get("max_depth", 5),
                 random_state=42
             )
@@ -40,7 +40,7 @@ class ModelTrainer:
             model.fit(X_train, y_train)
             pred = model.predict(X_test)
 
-            # Cross Validation Score
+            # Cross Validation
             cv_scores = cross_val_score(model, X_train, y_train, cv=cv_folds, scoring='f1_weighted')
 
             results.append({

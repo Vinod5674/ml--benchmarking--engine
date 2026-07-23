@@ -33,7 +33,7 @@ with st.sidebar:
 if uploaded_file:
     df = load_csv_data(uploaded_file)
 
-    # 🚀 LAZY LOADING TABS (Pura load hone se bachane ke liye)
+    # 🚀 LAZY LOADING TABS (Fast Speed Navigation)
     selected_tab = st.radio(
         "Navigation",
         ["📋 Profile & Cleaning", "📊 EDA Studio", "⚙️ Pipeline Config", "🏆 Model Leaderboard", "🔮 Live Inference"],
@@ -104,20 +104,15 @@ if uploaded_file:
                 hyperparams["Decision Tree"] = {"max_depth": st.slider("Decision Tree Max Depth", 1, 20, 5)}
             if "Random Forest" in selected_models:
                 hyperparams["Random Forest"] = {
-                    "n_estimators": st.slider("Random Forest Estimators", 10, 100, 30, step=10), # Lowered default for speed
+                    "n_estimators": st.slider("Random Forest Estimators", 10, 100, 30, step=10),
                     "max_depth": st.slider("Random Forest Max Depth", 1, 20, 5)
                 }
 
         if st.button("🚀 Execute Pipeline & Train Models", type="primary"):
             with st.spinner("Processing Data & Training Models..."):
-                df_to_process = df.copy()
-                for col in df_to_process.columns:
-                    if col != target_col and df_to_process[col].nunique() > 50 and df_to_process[col].dtype == 'object':
-                        df_to_process.drop(columns=[col], inplace=True)
-
                 dp = DataProcessor()
                 X_proc, y_proc, feat_names = dp.preprocess_data(
-                    df_to_process, target_col, num_strategy=num_impute, scale_method=scale_opt, categorical_action=cat_opt
+                    df, target_col, num_strategy=num_impute, scale_method=scale_opt, categorical_action=cat_opt
                 )
 
                 mt = ModelTrainer()
@@ -180,7 +175,7 @@ if uploaded_file:
             if st.button("Generate Live Prediction", type="primary"):
                 input_df = pd.DataFrame([input_data])
                 prediction = top_model.predict(input_df)[0]
-                st.success(f"Prediction Output: `{prediction}`")
+                st.success(f"Prediction Output Label: `{prediction}`")
 
 else:
-    st.info("👈 Upload a CSV dataset to get started.")
+    st.info("👈 Upload a CSV dataset from sidebar to get started.")
