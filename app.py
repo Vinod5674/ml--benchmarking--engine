@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import joblib
 
 from src.data_processor import DataProcessor
 from src.model_trainer import ModelTrainer
@@ -15,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ⚡ Fast Data Loading with Caching
+# Fast Data Loading with Caching
 @st.cache_data
 def load_csv_data(file):
     return pd.read_csv(file)
@@ -29,11 +28,15 @@ if "processed" not in st.session_state:
 with st.sidebar:
     st.header("⚙️ 1. Dataset Upload")
     uploaded_file = st.file_uploader("Upload CSV Dataset", type=["csv"])
+    
+    if st.button("🔄 Reset App State"):
+        st.session_state.clear()
+        st.rerun()
 
 if uploaded_file:
     df = load_csv_data(uploaded_file)
 
-    # 🚀 LAZY LOADING TABS (Fast Speed Navigation)
+    # LAZY LOADING TABS
     selected_tab = st.radio(
         "Navigation",
         ["📋 Profile & Cleaning", "📊 EDA Studio", "⚙️ Pipeline Config", "🏆 Model Leaderboard", "🔮 Live Inference"],
@@ -46,7 +49,7 @@ if uploaded_file:
     # ---------------- 1. PROFILE & CLEANING ----------------
     if selected_tab == "📋 Profile & Cleaning":
         st.subheader("Data Overview & Structural Quality")
-        target_col = st.selectbox("Select Target Variable (Y)", df.columns)
+        target_col = st.selectbox("Select Target Variable (Y)", df.columns, index=len(df.columns)-1)
         st.session_state["target_col"] = target_col
 
         c1, c2, c3, c4 = st.columns(4)
@@ -69,8 +72,6 @@ if uploaded_file:
         target_col = st.session_state.get("target_col", df.columns[-1])
 
         e_col1, e_col2 = st.columns(2)
-        
-        # Performance sampling for instant plotting
         plot_df = df.sample(min(len(df), 2000), random_state=42) if len(df) > 2000 else df
 
         with e_col1:
@@ -115,6 +116,10 @@ if uploaded_file:
                     df, target_col, num_strategy=num_impute, scale_method=scale_opt, categorical_action=cat_opt
                 )
 
+                # 🚨 Strict Filter: Remove any leftover One-Hot Surname/ID columns
+                clean_features = [f for f in feat_names if not f.startswith("Surname_") and not f.lower().startswith("rownumber") and not f.lower().startswith("customerid")]
+                X_proc = X_proc[clean_features]
+
                 mt = ModelTrainer()
                 results_df, fitted_models, X_tr, X_te, y_tr, y_te = mt.train_and_evaluate(
                     X_proc, y_proc, selected_models, hyperparams
@@ -124,7 +129,7 @@ if uploaded_file:
                 st.session_state.fitted_models = fitted_models
                 st.session_state.data_processor = dp
                 st.session_state.model_trainer = mt
-                st.session_state.feature_names = feat_names
+                st.session_state.feature_names = clean_features
                 st.session_state.X_test = X_te
                 st.session_state.y_test = y_te
                 st.session_state.processed = True
@@ -165,6 +170,8 @@ if uploaded_file:
             st.subheader("🔮 Real-Time Single Prediction Interface")
             feat_names = st.session_state.feature_names
             top_model = st.session_state.fitted_models[st.session_state.results_df.iloc[0]["Model"]]
+
+            st.info(f"Showing **{len(feat_names)}** active model inputs.")
 
             input_data = {}
             col_list = st.columns(3)
